@@ -1,0 +1,274 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<!-- 把抽奖名单txt拖动到页面加载抽奖列表 格式: 名字(对应的号牌、默认是四位数)[+号用于区分] -->
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>年会抽奖-特别版</title>
+    <script type="text/javascript" src="js/jquery-1.7.2-min.js"></script>
+    <script type="text/javascript" src="js/easing.js"></script>
+    <style>
+    html,
+    body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+    }
+    
+    body {
+        background: url(images/body_bg.jpg) 0px 0px repeat-x #000;
+    }
+    
+    .main_bg {
+        background: url(images/main_bg.jpg) top center no-repeat;
+        height: 1000px;
+    }
+    
+    .main {
+        width: 1000px;
+        height: 1000px;
+        position: relative;
+        margin: 0 auto;
+    }
+    
+    .num_mask {
+        background: url(images/num_mask.png) 0px 0px no-repeat;
+        height: 184px;
+        width: 740px;
+        position: absolute;
+        left: 50%;
+        top: 340px;
+        margin-left: -370px;
+        z-index: 9;
+    }
+    
+    .num_box {
+        height: 450px;
+        width: 750px;
+        position: absolute;
+        left: 50%;
+        top: 340px;
+        margin-left: -370px;
+        z-index: 8;
+        overflow: hidden;
+        text-align: center;
+    }
+    
+    .num {
+        background: url(images/num.png) top center repeat-y;
+        width: 181px;
+        height: 265px;
+        float: left;
+        margin-right: 6px;
+    }
+    
+    .num_blank {
+        width: 181px;
+        height: 265px;
+        float: left;
+        margin-right: 6px;
+    }
+    
+    .btn {
+        background: url(images/btn_start.png) 0px 0px no-repeat;
+        width: 264px;
+        height: 89px;
+        position: absolute;
+        left: 50%;
+        bottom: 50px;
+        margin-left: -132px;
+        cursor: pointer;
+        clear: both;
+    }
+    </style>
+</head>
+
+<body>
+    <div class="main_bg" id="holder">
+        <div class="main">
+            <div id="res" style="text-align:center;color:#fff;padding-top:15px;"></div>
+            <div class="num_mask"></div>
+            <div class="num_box">
+                <div class="num"></div>
+                <div class="num"></div>
+                <div class="num"></div>
+                <div class="num"></div>
+                <div class="btn"></div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
+<script>
+var zlist = [];
+var slist = [];
+var mainList = [{
+    nid: "0000",
+    name: "奇遇旅行"
+}];
+
+function numRand(top, bottom) {
+    var x = top; //上限
+    var y = bottom; //下限
+    var rand = parseInt(Math.random() * (x - y + 1) + y);
+    console.log(rand);
+    return rand;
+}
+
+var isBegin = false;
+
+$(function() {
+    var u = 265;
+
+    var holder = document.getElementById('holder');
+    holder.ondragover = function() {
+        return false;
+    };
+    holder.ondragleave = holder.ondragend = function() {
+        return false;
+    };
+    holder.ondrop = function(e) {
+        e.preventDefault();
+        var file = e.dataTransfer.files[0];
+
+        zlist = [];
+        slist = [];
+        mainList = [];
+
+        var reader = new FileReader();
+
+        reader.onload = function(e) {
+            var data = e.target.result;
+            var list = data.split(/\r?\n/ig);
+            list.forEach(function(e) {
+
+                if (e.indexOf('+') > -1) {
+                    zlist.push(getModel(e));
+                } else {
+                    slist.push(getModel(e));
+                }
+            });
+        };
+
+        reader.readAsText(file);
+
+        return false;
+    };
+
+
+
+    $('.btn').click(function() {
+        if (isBegin) return false;
+        isBegin = true;
+        $(".num").css('backgroundPositionY', 0);
+
+
+        mainList = [];
+
+        var zlength = zlist.length;
+        var slength = slist.length;
+
+
+        zlist.forEach(function(z) {
+            mainList.push(z);
+        });
+        slist.forEach(function(s) {
+            mainList.push(s);
+        });
+
+        randomArray(mainList);
+
+        console.log(mainList);
+
+        var result = numRand(mainList.length - 1, 0);
+
+        var chouzhonger = mainList.splice(result, 1);
+        chouzhonger = chouzhonger[0];
+        console.log(chouzhonger);
+
+
+        remove(chouzhonger);
+
+
+        var num_arr = chouzhonger.nid.split('');
+
+        $(".num").each(function(index) {
+
+            var _num = $(this);
+            setTimeout(function() {
+                _num.animate({
+                    backgroundPositionY: (u * 60) - (u * parseInt(num_arr[index]))
+                }, {
+                    duration: 6000 + index * 3000,
+                    easing: "easeInOutCirc",
+                    complete: function() {
+                        if (index == 3) {
+                            isBegin = false;
+                            setTimeout(function() {
+                                $("#res").text("" + chouzhonger.name);
+                            }, 2000);
+                        }
+                    }
+                });
+            }, index * 300);
+
+        });
+    });
+});
+
+function remove(e) {
+
+    for (var i = 0; i < zlist.length; i++) {
+        var a = zlist[i];
+        if (a.nid == e.nid) {
+            zlist.splice(i, 1);
+            break;
+        }
+    }
+    for (var i = 0; i < slist.length; i++) {
+        var a = slist[i];
+        if (a.nid == e.nid) {
+            slist.splice(i, 1);
+            break;
+        }
+    }
+
+    console.log(zlist, slist);
+}
+
+function randomArray(list) {
+    var i,
+        index,
+        temp;
+
+    // 打乱数组
+    for (i = 1; i <= list.length; i++) {
+        // 产生从 i 到 length 之间的随机数
+        index = parseInt(Math.random() * (list.length - i)) + i;
+        if (index != i) {
+            temp = list[i];
+            list[i] = list[index];
+            list[index] = temp;
+        }
+    }
+    return list;
+}
+
+
+function getModel(e) {
+    let a = {
+        nid: "0000",
+        name: "能不能再来一次？？"
+    };
+
+    e = e.replace(")", "");
+    e = e.replace("+", "");
+    var wq = e.split("(");
+
+    a.nid = wq[1];
+    a.name = wq[0];
+    return a;
+}
+</script>
+<div style="text-align:center;margin:50px 0; font:normal 14px/24px 'MicroSoft YaHei';">
+</div>
